@@ -198,6 +198,9 @@ if [ "$hasConf" = "1" ]; then
 fi
 
 
+#todo: add option to auto generate and save config files on the cloud
+# may also allow pulling config from google account and asking with a list
+
 # setup aspiesoft auto updates
 if [ "$autoUpdates" = "y" -o "$autoUpdates" = "Y" -o "$autoUpdates" = "" -o "$autoUpdates" = " " ] ; then
   sudo mkdir -p /etc/aspiesoft-fedora-setup-updates
