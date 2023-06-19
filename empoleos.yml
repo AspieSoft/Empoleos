@@ -1,0 +1,12 @@
+dnf:
+  chromium: yes
+  gparted: yes
+
+flatpak:
+  _types: flathub
+  flathub:
+    com.obsproject.Studio: yes
+    org.shotcut.Shotcut: yes
+
+snap:
+  atom: yes
