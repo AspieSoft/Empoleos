@@ -5,8 +5,8 @@ dir="$PWD"
 
 
 # verify checksums
-gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/empoleos/master/install.sh" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
-sum=$(sha256sum "install.sh" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/empoleos/master/install_server.sh" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+sum=$(sha256sum "install_server.sh" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
 if ! [ "$sum" = "$gitSum" ]; then
   echo "error: checksum failed!"
   exit
@@ -117,19 +117,6 @@ echo
 
 
 function cleanup {
-  # reset login timeout
-  sudo sed -r -i 's/^Defaults([\t ]+)(.*)env_reset(.*), (timestamp_timeout=1801,?\s*)+$/Defaults\1\2env_reset\3/m' /etc/sudoers &>/dev/null
-
-  # enable sleep
-  sudo systemctl --runtime unmask sleep.target suspend.target hibernate.target hybrid-sleep.target &>/dev/null
-  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'suspend' &>/dev/null
-
-  # enable auto updates
-  gsettings set org.gnome.software download-updates true
-
-  # enable auto suspend
-  sudo perl -0777 -i -pe 's/#AspieSoft-TEMP-START(.*)#AspieSoft-TEMP-END//s' /etc/systemd/logind.conf &>/dev/null
-
   cd "$dir"
 }
 trap cleanup EXIT
@@ -145,29 +132,6 @@ trap cleanupexit SIGINT
 sudo echo
 
 
-# extend login timeout
-sudo sed -r -i 's/^Defaults([\t ]+)(.*)env_reset(.*)$/Defaults\1\2env_reset\3, timestamp_timeout=1801/m' /etc/sudoers &>/dev/null
-
-# disable sleep
-sudo systemctl --runtime mask sleep.target suspend.target hibernate.target hybrid-sleep.target &>/dev/null
-gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing' &>/dev/null
-
-# disable auto updates
-gsettings set org.gnome.software download-updates false
-
-# disable auto suspend
-echo "#AspieSoft-TEMP-START" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
-echo "HandleLidSwitch=ignore" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
-echo "HandleLidSwitchDocked=ignore" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
-echo "IdleAction=ignore" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
-echo "#AspieSoft-TEMP-END" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
-
-
-# set theme basics
-gsettings set org.gnome.desktop.interface clock-format 12h
-gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
-
-
 # verify script checksums
 for file in bin/scripts/*.sh; do
   gitVerify "$file"
@@ -177,16 +141,14 @@ done
 # run scripts
 bash ./bin/scripts/repos.sh
 bash ./bin/scripts/fix.sh
-bash ./bin/scripts/preformance.sh
+bash ./bin/server/scripts/preformance.sh
 
 bash ./bin/scripts/programing-languages.sh
-bash ./bin/scripts/security.sh
+bash ./bin/server/scripts/security.sh
 
-bash ./bin/scripts/apps.sh
+bash ./bin/server/scripts/apps.sh
 
 bash ./bin/scripts/shortcuts.sh
-
-bash ./bin/scripts/theme.sh
 
 
 # handle config packages
@@ -236,9 +198,6 @@ if [ "$hasConf" = "1" ]; then
 fi
 
 
-#todo: add option to auto generate and save config files on the cloud
-# may also allow pulling config from google account and asking with a list
-
 # setup aspiesoft auto updates
 if [ "$autoUpdates" = "y" -o "$autoUpdates" = "Y" -o "$autoUpdates" = "" -o "$autoUpdates" = " " ] ; then
   sudo mkdir -p /etc/aspiesoft-fedora-setup-updates
@@ -255,17 +214,9 @@ fi
 
 cleanup
 
-# clean up and restart gnome
+# clean up
 if [[ "$PWD" =~ fedora-setup/?$ ]]; then
   rm -rf "$PWD"
 fi
 
 echo "Install Finished!"
-
-echo
-echo "Ready To Restart Gnome!"
-echo
-read -n1 -p "Press any key to continue..." input ; echo >&2
-
-# note: this will logout the user
-killall -3 gnome-shell

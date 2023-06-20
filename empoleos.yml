@@ -1,3 +1,5 @@
+auto_updates: yes
+
 dnf:
   chromium: yes
   gparted: yes
