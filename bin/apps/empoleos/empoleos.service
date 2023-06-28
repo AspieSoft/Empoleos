@@ -1,0 +1,8 @@
+[Unit]
+Description=AspieSoft Fedora Setup Updates
+
+[Service]
+ExecStart=/bin/bash /etc/empoleos/init.sh
+
+[Install]
+WantedBy=multi-user.target

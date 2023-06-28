@@ -4,15 +4,15 @@ cd $(dirname "$0")
 dir="$PWD"
 
 
-# verify checksums
-gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/empoleos/master/install.sh" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+verify checksums
+gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/install.sh" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
 sum=$(sha256sum "install.sh" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
 if ! [ "$sum" = "$gitSum" ]; then
   echo "error: checksum failed!"
   exit
 fi
 
-gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/empoleos/master/bin/common.sh" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/bin/common.sh" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
 sum=$(sha256sum "bin/common.sh" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
 if ! [ "$sum" = "$gitSum" ]; then
   echo "error: checksum failed!"
@@ -22,6 +22,9 @@ fi
 
 # add bash dependencies
 source ./bin/common.sh
+
+
+tmpDir="$(mktemp -d)"
 
 
 function loadConfigFile {
@@ -36,6 +39,65 @@ function loadConfigFile {
   elif [ "$configFile" = "" ]; then
     hasConf="0"
   fi
+}
+
+
+function askForConfigFile {
+  while true; do
+    echo "Choose a config file you would like to use"
+    echo "or leave blank for default setup"
+    read -p "Config File (yml): " configFile
+
+    if [[ "$configFile" =~ "http://".* ]]; then
+      if [[ "$configFile" =~ "http://localhost:".* ]] || [[ "$configFile" =~ "http://127.0.0.1:".* ]]; then
+        break
+      fi
+
+      echo "error: config must be secure. (use https instead of http)"
+      configFile=""
+      continue
+    fi
+
+    if [[ "$configFile" =~ .*"@gmail.com" ]]; then
+      fileList=$(gio list "google-drive://$configFile/My Drive/EmpoleosBackups" -ud)
+      if [ "$fileList" = "" ]; then
+        gio mkdir "google-drive://$configFile/My Drive/EmpoleosBackups"
+        echo
+        read -p "New Cloud Backup: " configFileName
+        if [ "$configFileName" = "" ]; then
+          configFile=""
+          continue
+        fi
+      else
+        for file in $fileList; do
+          # echo "$(echo $file | sed -e 's#^google-drive://[^\\/]+/My(?: |%20)Drive/##i')"
+          echo "$(echo $file | sed -e 's#^google-drive://[^\\/]*/My[%20 ]*Drive/##i' -e 's#%20# #g')"
+        done
+
+        echo
+        echo "(Or Enter A New Name To Create A New Cloud Backup)"
+        read -p "Choose Cloud Backup: " configFileName
+        if [ "$configFileName" = "" ]; then
+          configFile=""
+          continue
+        fi
+      fi
+
+      backupFiles="google-drive://$configFile/My Drive/EmpoleosBackups/$configFileName"
+      listTest=$(gio list "$backupFiles" -ud)
+      if [ "$listTest" = "" ]; then
+        listTest=""
+        gio mkdir "google-drive://$configFile/My Drive/EmpoleosBackups/$configFileName"
+        configFileNew=1
+        break
+      fi
+      listTest=""
+      gio copy "$backupFiles/config.yml" "$tmpDir/config.yml"
+      configFile="$tmpDir/config.yml"
+    fi
+
+    break
+  done
 }
 
 
@@ -74,23 +136,10 @@ if ! [ "autoYes" = "1" ]; then
   fi
 
   if [ "$configFile" = "" ]; then
-    while true; do
-      echo "Choose a config file you would like to use"
-      echo "or leave blank for default setup"
-      read -p "Config File (yml): " configFile
+    # gio list "google-drive://shaynejr98@gmail.com/My Drive/" -ud
+    # gio mkdir "google-drive://shaynejr98@gmail.com/My Drive/EmpoleosBackups"
 
-      if [[ "$configFile" =~ "http://".* ]]; then
-        if [[ "$configFile" =~ "http://localhost:".* ]] || [[ "$configFile" =~ "http://127.0.0.1:".* ]]; then
-          break
-        fi
-
-        echo "error: config must be secure. (use https instead of http)"
-        configFile=""
-        continue
-      fi
-
-      break
-    done
+    askForConfigFile
   fi
 
   # load config file
@@ -106,6 +155,10 @@ elif [ "$configFile" = "" ]; then
     configFile="empoleos.yml"
   fi
 fi
+
+
+#temp
+exit
 
 
 # load config file if not loaded
@@ -236,27 +289,61 @@ if [ "$hasConf" = "1" ]; then
 fi
 
 
-#todo: add option to auto generate and save config files on the cloud
-# may also allow pulling config from google account and asking with a list
-
 # setup aspiesoft auto updates
 if [ "$autoUpdates" = "y" -o "$autoUpdates" = "Y" -o "$autoUpdates" = "" -o "$autoUpdates" = " " ] ; then
-  sudo mkdir -p /etc/aspiesoft-fedora-setup-updates
-  sudo cp -rf ./assets/apps/aspiesoft-fedora-setup-updates/* /etc/aspiesoft-fedora-setup-updates
-  sudo rm -f /etc/aspiesoft-fedora-setup-updates/aspiesoft-fedora-setup-updates.service
-  sudo cp -f ./assets/apps/aspiesoft-fedora-setup-updates/aspiesoft-fedora-setup-updates.service "/etc/systemd/system"
-  gitVer="$(curl --silent 'https://api.github.com/repos/AspieSoft/fedora-setup/releases/latest' | grep '\"tag_name\":' | sed -E 's/.*\"([^\"]+)\".*/\1/')"
-  echo "$gitVer" | sudo tee "/etc/aspiesoft-fedora-setup-updates/version.txt"
+  if [ "$configFileNew" = "1" ]; then
+    echo 'auto_updates: yes' >> "$tmpDir/config.yml"
+  fi
 
-  sudo systemctl daemon-reload
-  sudo systemctl enable aspiesoft-fedora-setup-updates.service
-  sudo systemctl start aspiesoft-fedora-setup-updates.service
+  sudo sed -r -i 's/^#auto_updates=$/auto_updates=/m' "$dir/bin/apps/empoleos/init.sh"
+else if [ "$configFileNew" = "1" ]; then
+  echo 'auto_updates: no' >> "$tmpDir/config.yml"
 fi
+
+if ! [ "$backupFiles" = "" ]; then
+  if [ "$configFileNew" = "1" ]; then
+    gio copy "$tmpDir/config.yml" "$backupFiles/config.yml"
+
+    tmpPassWD="$(pwgen -scnyB -r \" 512 1)"
+
+    cd "$HOME"
+    bash "$dir/bin/copy-limit.sh" "." "$tmpDir/home.zip" "$tmpPassWD"
+    cd "$dir"
+
+    echo "$tmpPassWD" > "$tmpDir/enc.key"
+    gio copy "$tmpDir/enc.key" "$backupFiles/enc.key"
+    rm -f "$tmpDir/enc.key"
+
+    gio copy "$tmpDir/home.zip" "$backupFiles/home.zip"
+    tmpPassWD=""
+  else
+    gio copy "$backupFiles/home.zip" "$tmpDir/home.zip"
+
+    gio copy "$backupFiles/enc.key" "$tmpDir/enc.key"
+    tmpPassWD="$(cat $tmpDir/enc.key)"
+    rm -f "$tmpDir/enc.key"
+
+    unzip -o -P "$tmpPassWD" "$tmpDir/home.zip" -d "$HOME"
+  fi
+
+  sudo sed -r -i 's/^#auto_backups=$/auto_backups=/m' "$dir/bin/apps/empoleos/init.sh"
+fi
+
+sudo mkdir -p /etc/empoleos
+sudo cp -rf ./assets/apps/empoleos/* /etc/empoleos
+sudo rm -f /etc/empoleos/empoleos.service
+sudo cp -f ./assets/apps/empoleos/empoleos.service "/etc/systemd/system"
+gitVer="$(curl --silent 'https://api.github.com/repos/AspieSoft/Empoleos/releases/latest' | grep '\"tag_name\":' | sed -E 's/.*\"([^\"]+)\".*/\1/')"
+echo "$gitVer" | sudo tee "/etc/empoleos/version.txt"
+
+sudo systemctl daemon-reload
+sudo systemctl enable empoleos.service
+sudo systemctl start empoleos.service
 
 cleanup
 
 # clean up and restart gnome
-if [[ "$PWD" =~ fedora-setup/?$ ]]; then
+if [[ "$PWD" =~ empoleos/?$ ]]; then
   rm -rf "$PWD"
 fi
 

@@ -3,6 +3,9 @@
 # install file systems
 sudo dnf -y install btrfs-progs lvm2 xfsprogs udftools
 
+# install 7zip
+sudo dnf -y install p7zip p7zip-plugins
+
 # install printer software
 sudo dnf -y install hplip hplip-gui
 
