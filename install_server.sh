@@ -148,7 +148,7 @@ bash ./bin/server/scripts/preformance.sh
 bash ./bin/scripts/programing-languages.sh
 bash ./bin/server/scripts/security.sh
 
-# bash ./bin/server/scripts/apps.sh
+bash ./bin/server/scripts/apps.sh
 
 bash ./bin/scripts/shortcuts.sh
 

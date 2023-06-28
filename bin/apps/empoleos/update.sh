@@ -57,7 +57,11 @@ cd bin/updates
 readarray -d '' fileList < <(printf '%s\0' *.sh | sort -zV)
 cd ../../
 
+updateDir="$PWD"
+
 for file in "${fileList[@]}"; do
+  cd "$updateDir"
+
   fileVer=(${file//./ })
   if ! [ "$ver" == "${fileVer[0]}.${fileVer[1]}.${fileVer[2]}" ]; then
     verN=(${ver//./ })
