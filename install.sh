@@ -31,6 +31,7 @@ function loadConfigFile {
   if ! [ "$configFile" = "" ] && ! [ "$hasConf" = "1" ]; then
     if [[ "$configFile" =~ "https://".* ]]; then
       #todo: handle https requests (download config.yml file and parse it)
+      # may use wget or curl (will need to set an output to avoid potential conflicts with existing files)
     elif test -f "$configFile"; then
       hasConf="1"
       eval $(parse_yaml "$configFile" "empoleosCONF_")
