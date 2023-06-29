@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
+<wallpapers>
+  <wallpaper deleted="false">
+    <name>AspieSoft</name>
+    <filename>/usr/share/backgrounds/aspiesoft/blue.webp</filename>
+    <filename-dark>/usr/share/backgrounds/aspiesoft/black.webp</filename-dark>
+    <options>zoom</options>
+    <author>AspieSoft</author>
+    <email>web@aspiesoft.com</email>
+    <license>GPL v3</license>
+  </wallpaper>
+</wallpapers>

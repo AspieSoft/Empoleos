@@ -37,6 +37,7 @@ fi
 sudo systemctl enable fail2ban
 sudo systemctl start fail2ban
 
+
 # install clamav
 sudo dnf -y install clamav clamd clamav-update
 sudo systemctl stop clamav-freshclam

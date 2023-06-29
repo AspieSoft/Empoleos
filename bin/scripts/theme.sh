@@ -1,9 +1,8 @@
 #!/bin/bash
 
-source ./bin/common.sh
+boringMode="$1"
 
-#todo: change github repo and folders for theme
-#todo: use new "addPkg" and "rmPkg" methods
+source ./bin/common.sh
 
 # setup theme
 git clone https://github.com/vinceliuice/Fluent-gtk-theme.git
@@ -18,10 +17,10 @@ done
 sudo cp -r zorin-icon-themes/Zorin* /usr/share/icons
 rm -rf zorin-icon-themes
 
-sudo tar -xvzf ./assets/sounds/sounds.tar.gz -C /usr/share/sounds
+sudo tar -xvzf ./bin/assets/sounds/sounds.tar.gz -C /usr/share/sounds
 sudo mkdir -p /usr/share/backgrounds/aspiesoft
-sudo tar -xvzf ./assets/backgrounds/aspiesoft.tar.gz -C /usr/share/backgrounds/aspiesoft
-sudo cp ./assets/backgrounds/aspiesoft.xml /usr/share/gnome-background-properties
+sudo tar -xvzf ./bin/assets/backgrounds/aspiesoft.tar.gz -C /usr/share/backgrounds/aspiesoft
+sudo cp ./bin/assets/backgrounds/aspiesoft.xml /usr/share/gnome-background-properties
 
 gsettings set org.gnome.desktop.interface gtk-theme "Fluent-round-Dark"
 gsettings set org.gnome.desktop.interface icon-theme "ZorinBlue-Dark"
@@ -43,7 +42,6 @@ gext -F install vertical-workspaces@G-dH.github.com
 gext -F install user-theme@gnome-shell-extensions.gcampax.github.com
 gext -F install gnome-ui-tune@itstime.tech
 
-#todo: determine which of these is compatable per pc and desktop
 gext -F install ding@rastersoft.com
 gext -F install gtk4-ding@smedius.gitlab.com
 
@@ -62,6 +60,9 @@ gext -F install clipboard-indicator@tudmotu.com
 
 gext -F install burn-my-windows@schneegans.github.com
 gext -F install compiz-alike-magic-lamp-effect@hermes83.github.com
+
+gext -F install block-caribou-36@lxylxy123456.ercli.dev
+gext disable block-caribou-36@lxylxy123456.ercli.dev
 
 gext -F install Vitals@CoreCoding.com
 gext disable Vitals@CoreCoding.com
@@ -157,7 +158,7 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/gtk4-ding@smedius.gi
 # setup burn my windows
 rm -rf "$HOME/.config/burn-my-windows/profiles"
 mkdir -p "$HOME/.config/burn-my-windows/profiles"
-sudo cp ./assets/extensions/burn-my-windows.conf "$HOME/.config/burn-my-windows/profiles"
+sudo cp ./bin/assets/extensions/burn-my-windows.conf "$HOME/.config/burn-my-windows/profiles"
 gsettings --schemadir ~/.local/share/gnome-shell/extensions/burn-my-windows@schneegans.github.com/schemas/ set org.gnome.shell.extensions.burn-my-windows active-profile "$HOME/.config/burn-my-windows/profiles/burn-my-windows.conf"
 
 # setup date formatter
@@ -178,10 +179,18 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/sane-airplane-mode@k
 gsettings --schemadir ~/.local/share/gnome-shell/extensions/sane-airplane-mode@kippi/schemas/ set org.gnome.shell.extensions.sane-airplane-mode enable-bluetooth "false"
 
 # setup user theme
-gsettings --schemadir ~/.local/share/gnome-shell/extensions/user-theme@gnome-shell-extensions.gcampax.github.com/schemas/ set org.gnome.shell.extensions.user-theme name "Fluent-round-Dark"
+# gsettings --schemadir ~/.local/share/gnome-shell/extensions/user-theme@gnome-shell-extensions.gcampax.github.com/schemas/ set org.gnome.shell.extensions.user-theme name "Fluent-round-Dark"
 
 # other config options
 gsettings set org.gnome.TextEditor restore-session "false"
 
 
+if [ "$boringMode" = "y" ]; then
+  gsettings set org.gnome.desktop.sound theme-name "zorin"
+  gext disable burn-my-windows@schneegans.github.com
+  gext disable compiz-alike-magic-lamp-effect@hermes83.github.com
+fi
+
+
+# copy extension settings for new users
 sudo cp -rf "$HOME/.local/share/gnome-shell/extensions" "/etc/skel/.local/share/gnome-shell/extensions"

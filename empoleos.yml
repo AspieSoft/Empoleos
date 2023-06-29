@@ -1,4 +1,6 @@
 auto_updates: yes
+server: no
+boring: no
 
 dnf:
   chromium: yes
@@ -7,6 +9,7 @@ dnf:
 flatpak:
   _types: flathub
   flathub:
+    _remote: https://flathub.org/repo/flathub.flatpakrepo
     com.obsproject.Studio: yes
     org.shotcut.Shotcut: yes
 

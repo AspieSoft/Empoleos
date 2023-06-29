@@ -18,8 +18,8 @@ sudo systemctl start thermald
 sudo systemctl enable thermald
 
 
-#todo: consider adding for an optional preformance mode (power mode)
-#sudo dnf install gnome-power-manager power-profiles-daemon
+#sudo dnf -y install gnome-power-manager power-profiles-daemon
+sudo dnf -y install power-profiles-daemon
 
 
 # disable time wasting startup programs

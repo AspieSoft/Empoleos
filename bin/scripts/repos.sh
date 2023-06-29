@@ -32,6 +32,8 @@ sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub
 sudo dnf -y install snapd
 sudo ln -s /var/lib/snapd/snap /snap
 sudo snap install snap-store
+sudo snap install core
+sudo snap refresh core
 
 # install media codecs
 sudo dnf install -y --skip-broken @multimedia

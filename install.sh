@@ -103,9 +103,16 @@ function askForConfigFile {
 
 autoUpdates="y"
 
+serverMode="n"
+boringMode="n"
+
 for opt in "$@"; do
   if [ "$opt" = "-y" ]; then
     autoYes="1"
+  elif [ "$opt" = "--server" ]; then
+    serverMode="y"
+  elif [ "$opt" = "--boring" ]; then
+    boringMode="y"
   elif [[ "$opt" =~ "--config=".* ]]; then
     configFile="${opt/--config=/}"
     if [[ "$configFile" =~ "http://".* ]]; then
@@ -157,12 +164,17 @@ elif [ "$configFile" = "" ]; then
 fi
 
 
-#temp
-exit
-
-
 # load config file if not loaded
 loadConfigFile
+
+
+if [ "$empoleosCONF_server" = "yes" -o "$empoleosCONF_server" = "true" ]; then
+  serverMode="y"
+fi
+
+if [ "$empoleosCONF_boring" = "yes" -o "$empoleosCONF_boring" = "true" ]; then
+  boringMode="y"
+fi
 
 
 echo "Starting Install..."
@@ -230,16 +242,32 @@ done
 # run scripts
 bash ./bin/scripts/repos.sh
 bash ./bin/scripts/fix.sh
-bash ./bin/scripts/preformance.sh
+
+if [ "$serverMode" = "y" ]; then
+  bash ./bin/server/scripts/preformance.sh
+else
+  bash ./bin/scripts/preformance.sh
+fi
 
 bash ./bin/scripts/programing-languages.sh
-bash ./bin/scripts/security.sh
 
-bash ./bin/scripts/apps.sh
+if [ "$serverMode" = "y" ]; then
+  bash ./bin/server/scripts/security.sh
+else
+  bash ./bin/scripts/security.sh
+fi
+
+if [ "$serverMode" = "y" ]; then
+  bash ./bin/server/scripts/apps.sh
+else
+  bash ./bin/scripts/apps.sh
+fi
 
 bash ./bin/scripts/shortcuts.sh
 
-bash ./bin/scripts/theme.sh
+if ! [ "$serverMode" = "y" ]; then
+  bash ./bin/scripts/theme.sh "$boringMode"
+fi
 
 
 # handle config packages
@@ -272,6 +300,13 @@ if [ "$hasConf" = "1" ]; then
 
       for pkg in ${!key}; do
         pkg="$(echo $pkg | sed -e 's/__l__/-/g' -e 's/__d__/./g')"
+
+        if [ "$pkg" == "_remote" ]; then
+          pkgKey="${key}${pkg}"
+          sudo flatpak remote-add --if-not-exists "$pkgType" "${!pkgKey}"
+          continue
+        fi
+
         val=$(getPkgConfig "$pkgMan" "$pkg" "$pkgType")
 
         if [ "$val" = "1" ]; then
@@ -340,19 +375,27 @@ sudo systemctl daemon-reload
 sudo systemctl enable empoleos.service
 sudo systemctl start empoleos.service
 
+
+# clean up
 cleanup
 
-# clean up and restart gnome
 if [[ "$PWD" =~ empoleos/?$ ]]; then
   rm -rf "$PWD"
 fi
 
+sudo dnf -y update
+sudo dnf -y clean all
+
 echo "Install Finished!"
 
-echo
-echo "Ready To Restart Gnome!"
-echo
-read -n1 -p "Press any key to continue..." input ; echo >&2
 
-# note: this will logout the user
-killall -3 gnome-shell
+# restart gnome
+if ! [ "$serverMode" = "y" ]; then
+  echo
+  echo "Ready To Restart Gnome!"
+  echo
+  read -n1 -p "Press any key to continue..." input ; echo >&2
+
+  # note: this will logout the user
+  killall -3 gnome-shell
+fi
