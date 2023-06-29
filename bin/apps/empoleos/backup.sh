@@ -19,8 +19,13 @@ done
 
 sleep 1
 
-
 echo "starting backup for empoleos"
+
+backupFiles="$(cat $HOME/.empoleos-backup.url)"
+if [ "$backupFiles" = "" ]; then
+  echo "error: .empoleos-backup.url not found for user '$USER'"
+  exit
+fi
 
 gio rename "$backupFiles/config.yml" "config.yml.back"
 gio rename "$backupFiles/enc.key" "enc.key.back"
@@ -30,9 +35,7 @@ gio copy "$dir/config.yml" "$backupFiles/config.yml"
 
 tmpDir="$(mktemp -d)"
 
-backupFiles="$(cat backup.txt)"
-
-tmpPassWD="$(pwgen -scnyB -r \" 512 1)"
+tmpPassWD="$(pwgen -scnyB -r "\\\"'\`\$!%" 512 1)"
 
 cd "$HOME"
 bash "$dir/bin/copy-limit.sh" "." "$tmpDir/home.zip" "$tmpPassWD"

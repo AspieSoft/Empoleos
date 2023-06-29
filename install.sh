@@ -30,8 +30,10 @@ tmpDir="$(mktemp -d)"
 function loadConfigFile {
   if ! [ "$configFile" = "" ] && ! [ "$hasConf" = "1" ]; then
     if [[ "$configFile" =~ "https://".* ]]; then
-      #todo: handle https requests (download config.yml file and parse it)
-      # may use wget or curl (will need to set an output to avoid potential conflicts with existing files)
+      wget --https-only -i "$configFile" -O "$tmpDir/url-config.yml"
+      configFile="$tmpDir/url-config.yml"
+      hasConf="1"
+      eval $(parse_yaml "$configFile" "empoleosCONF_")
     elif test -f "$configFile"; then
       hasConf="1"
       eval $(parse_yaml "$configFile" "empoleosCONF_")
@@ -48,6 +50,8 @@ function askForConfigFile {
   while true; do
     echo "Choose a config file you would like to use"
     echo "or leave blank for default setup"
+    echo "you may also enter your email for automatic cloud save backups (including your home directory)"
+    echo "you can enter a url to load a config file from the web (ie: 'https://example.com/empoleos-config.yml')"
     read -p "Config File (yml): " configFile
 
     if [[ "$configFile" =~ "http://".* ]]; then
@@ -60,7 +64,14 @@ function askForConfigFile {
       continue
     fi
 
+    #todo: add support for other online account types
     if [[ "$configFile" =~ .*"@gmail.com" ]]; then
+      if [ "$(gio info "google-drive://$configFile/My Drive")" = "" ]; then
+        echo "error: you must first sign into that account with gnome online accounts"
+        configFile=""
+        continue
+      fi
+
       fileList=$(gio list "google-drive://$configFile/My Drive/EmpoleosBackups" -ud)
       if [ "$fileList" = "" ]; then
         gio mkdir "google-drive://$configFile/My Drive/EmpoleosBackups"
@@ -72,7 +83,6 @@ function askForConfigFile {
         fi
       else
         for file in $fileList; do
-          # echo "$(echo $file | sed -e 's#^google-drive://[^\\/]+/My(?: |%20)Drive/##i')"
           echo "$(echo $file | sed -e 's#^google-drive://[^\\/]*/My[%20 ]*Drive/##i' -e 's#%20# #g')"
         done
 
@@ -89,13 +99,18 @@ function askForConfigFile {
       listTest=$(gio list "$backupFiles" -ud)
       if [ "$listTest" = "" ]; then
         listTest=""
-        gio mkdir "google-drive://$configFile/My Drive/EmpoleosBackups/$configFileName"
+        gio mkdir "$backupFiles"
         configFileNew=1
         break
       fi
+
       listTest=""
       gio copy "$backupFiles/config.yml" "$tmpDir/config.yml"
       configFile="$tmpDir/config.yml"
+    elif [[ "$configFile" =~ .*"@".* ]]; then
+      echo "error: that account type is not yet supported"
+      configFile=""
+      continue
     fi
 
     break
@@ -145,9 +160,6 @@ if ! [ "autoYes" = "1" ]; then
   fi
 
   if [ "$configFile" = "" ]; then
-    # gio list "google-drive://shaynejr98@gmail.com/My Drive/" -ud
-    # gio mkdir "google-drive://shaynejr98@gmail.com/My Drive/EmpoleosBackups"
-
     askForConfigFile
   fi
 
@@ -326,7 +338,7 @@ if [ "$hasConf" = "1" ]; then
 fi
 
 
-# setup aspiesoft auto updates
+# setup auto updates
 if [ "$autoUpdates" = "y" -o "$autoUpdates" = "Y" -o "$autoUpdates" = "" -o "$autoUpdates" = " " ] ; then
   if [ "$configFileNew" = "1" ]; then
     echo 'auto_updates: yes' >> "$tmpDir/config.yml"
@@ -337,11 +349,12 @@ else if [ "$configFileNew" = "1" ]; then
   echo 'auto_updates: no' >> "$tmpDir/config.yml"
 fi
 
+# setup auto backups
 if ! [ "$backupFiles" = "" ]; then
   if [ "$configFileNew" = "1" ]; then
     gio copy "$tmpDir/config.yml" "$backupFiles/config.yml"
 
-    tmpPassWD="$(pwgen -scnyB -r \" 512 1)"
+    tmpPassWD="$(pwgen -scnyB -r "\\\"'\`\$!%" 512 1)"
 
     cd "$HOME"
     bash "$dir/bin/copy-limit.sh" "." "$tmpDir/home.zip" "$tmpPassWD"
@@ -364,12 +377,17 @@ if ! [ "$backupFiles" = "" ]; then
   fi
 
   sudo sed -r -i 's/^#auto_backups=$/auto_backups=/m' "$dir/bin/apps/empoleos/init.sh"
+  echo "$backupFiles" | sudo tee "$HOME/.empoleos-backup.url"
+fi
+
+if [ "$serverMode" = "y" ]; then
+  sudo sed -r -i 's/^#is_server=$/is_server=/m' "$dir/bin/apps/empoleos/update.sh"
 fi
 
 sudo mkdir -p /etc/empoleos
-sudo cp -rf ./assets/apps/empoleos/* /etc/empoleos
+sudo cp -rf ./bin/apps/empoleos/* /etc/empoleos
 sudo rm -f /etc/empoleos/empoleos.service
-sudo cp -f ./assets/apps/empoleos/empoleos.service "/etc/systemd/system"
+sudo cp -f ./bin/apps/empoleos/empoleos.service "/etc/systemd/system"
 gitVer="$(curl --silent 'https://api.github.com/repos/AspieSoft/Empoleos/releases/latest' | grep '\"tag_name\":' | sed -E 's/.*\"([^\"]+)\".*/\1/')"
 echo "$gitVer" | sudo tee "/etc/empoleos/version.txt"
 

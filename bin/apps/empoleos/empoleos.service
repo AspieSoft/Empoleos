@@ -1,5 +1,5 @@
 [Unit]
-Description=AspieSoft Fedora Setup Updates
+Description=Empoleos auto Updates and Backups
 
 [Service]
 ExecStart=/bin/bash /etc/empoleos/init.sh

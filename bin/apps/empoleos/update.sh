@@ -3,6 +3,8 @@
 cd $(dirname "$0")
 dir="$PWD"
 
+#is_server="1"
+
 
 # wait for wifi (timeout=5min)
 tries=0
@@ -31,6 +33,10 @@ fi
 
 ver="$(cat version.txt)"
 
+if [ "$ver" = "" ]; then
+  ver="0.0.0"
+fi
+
 if [ "$ver" = "$gitVer" ]; then
   echo "already up to date!"
   exit
@@ -51,11 +57,19 @@ for file in bin/scripts/*.sh; do
   fi
 done
 
-sudo nice -n 15 clamscan && sudo clamscan -r --bell --move="/VirusScan/quarantine" --exclude-dir="/VirusScan/quarantine" "$PWD/assets"
+sudo nice -n 15 clamscan -r --bell --move="/VirusScan/quarantine" --exclude-dir="/VirusScan/quarantine" "$PWD/bin/assets"
 
-cd bin/updates
-readarray -d '' fileList < <(printf '%s\0' *.sh | sort -zV)
-cd ../../
+if [ "$is_server" = "1" ]; then
+  localUpdateDir="bin/server/updates"
+  cd bin/server/updates
+  readarray -d '' fileList < <(printf '%s\0' *.sh | sort -zV)
+  cd ../../../
+else
+  localUpdateDir="bin/updates"
+  cd bin/updates
+  readarray -d '' fileList < <(printf '%s\0' *.sh | sort -zV)
+  cd ../../
+fi
 
 updateDir="$PWD"
 
@@ -66,11 +80,11 @@ for file in "${fileList[@]}"; do
   if ! [ "$ver" == "${fileVer[0]}.${fileVer[1]}.${fileVer[2]}" ]; then
     verN=(${ver//./ })
     if [ "${verN[0]}" -le "${fileVer[0]}" ] && [ "${verN[1]}" -le "${fileVer[1]}" ] && [ "${verN[2]}" -le "${fileVer[2]}" ]; then
-      gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/bin/updates/$file" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
-      sum=$(sha256sum "bin/updates/$file" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+      gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/$localUpdateDir/$file" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+      sum=$(sha256sum "$localUpdateDir/$file" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
       if [ "$sum" = "$gitSum" ]; then
         echo "updating $ver -> ${fileVer[0]}.${fileVer[1]}.${fileVer[2]}"
-        sudo bash "./bin/updates/$file"
+        sudo bash "./$localUpdateDir/$file"
         ver="${fileVer[0]}.${fileVer[1]}.${fileVer[2]}"
       else
         echo "checksum failed for update ${fileVer[0]}.${fileVer[1]}.${fileVer[2]}"

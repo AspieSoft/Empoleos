@@ -1,33 +1,16 @@
 #!/bin/bash
 
-function addPkgToBackup {
-  #todo: add package to backup config.yml
-  # $1: dnf, flatpak, snap, flatpak-remote
-  # $2: package-name
-  # flatpak-remote:
-  # - $2: flathub
-  # - $3: https://flathub.org/repo/flathub.flatpakrepo
-}
-
-function rmPkgFromBackup {
-  #todo: remove package from backup config.yml
-  # $1: dnf, flatpak, snap, flatpak-remote
-  # $2: package-name
-  # flatpak-remote:
-  # - $2: flathub
-  # - $3: https://flathub.org/repo/flathub.flatpakrepo
-}
-
+# handle backup config edits
 function dnf {
   local action=""
   for key in $@; do
     if [[ "$key" =~ "-".* ]]; then
       continue
     elif [ "$action" = "add" ]; then
-      addPkgToBackup "dnf" "$key"
+      /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "dnf" "$key" "yes"
       continue
     elif [ "$action" = "rm" ]; then
-      rmPkgFromBackup "dnf" "$key"
+      /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "dnf" "$key" "no"
       continue
     elif [ "$key" = "install" -o "$key" = "reinstall" ]; then
       action="add"
@@ -45,29 +28,29 @@ function dnf {
 
 function flatpak {
   local action=""
-  local remote=""
+  local repo=""
   for key in $@; do
     if [[ "$key" =~ "-".* ]]; then
       continue
-    elif ! [ "$remote" = "" ]; then
-      if [ "$action" = "add-remote" ]; then
-        addPkgToBackup "flatpak-remote" "$remote" "$key"
-      elif [ "$action" = "rm-remote" ]; then
-        rmPkgFromBackup "flatpak-remote" "$remote" "$key"
+    elif ! [ "$repo" = "" ]; then
+      if [ "$action" = "add-repo" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "flatpak-repo" "$key" "yes" "$repo"
+      elif [ "$action" = "rm-repo" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "flatpak-repo" "$key" "no" "$repo"
       fi
-      remote=""
+      repo=""
       continue
     elif [ "$action" = "add" ]; then
-      addPkgToBackup "flatpak" "$key"
+      /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "flatpak" "$key" "yes" "$repo"
       continue
     elif [ "$action" = "rm" ]; then
-      rmPkgFromBackup "flatpak" "$key"
+      /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "flatpak" "$key" "no" "$repo"
       continue
-    elif [ "$action" = "add-remote" ]; then
-      remote="$key"
+    elif [ "$action" = "add-repo" ]; then
+      repo="$key"
       continue
-    elif [ "$action" = "rm-remote" ]; then
-      remote="$key"
+    elif [ "$action" = "rm-repo" ]; then
+      repo="$key"
       continue
     elif [ "$key" = "install" ]; then
       action="add"
@@ -76,10 +59,10 @@ function flatpak {
       action="rm"
       continue
     elif [ "$key" = "remote-add" ]; then
-      action="add-remote"
+      action="add-repo"
       continue
     elif [ "$key" = "remote-delete" ]; then
-      action="rm-remote"
+      action="rm-repo"
       continue
     else
       break
@@ -95,10 +78,11 @@ function snap {
     if [[ "$key" =~ "-".* ]]; then
       continue
     elif [ "$action" = "add" ]; then
-      addPkgToBackup "snap" "$key"
+      /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "snap" "$key" "yes"
       continue
     elif [ "$action" = "rm" ]; then
-      rmPkgFromBackup "snap" "$key"
+      
+      /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "snap" "$key" "no"
       continue
     elif [ "$key" = "install" ]; then
       action="add"
@@ -125,10 +109,10 @@ function sudo {
       elif [[ "$key" =~ "-".* ]]; then
         continue
       elif [ "$action" = "add" ]; then
-        addPkgToBackup "dnf" "$key"
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "dnf" "$key" "yes"
         continue
       elif [ "$action" = "rm" ]; then
-        rmPkgFromBackup "dnf" "$key"
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "dnf" "$key" "no"
         continue
       elif [ "$key" = "install" -o "$key" = "reinstall" ]; then
         action="add"
@@ -143,32 +127,32 @@ function sudo {
   elif [ "$1" = "flatpak" ]; then
     local firstIndex="true"
     local action=""
-    local remote=""
+    local repo=""
     for key in $@; do
       if [ "$firstIndex" = "true" ]; then
         firstIndex="false"
         continue
       elif [[ "$key" =~ "-".* ]]; then
         continue
-      elif ! [ "$remote" = "" ]; then
-        if [ "$action" = "add-remote" ]; then
-          addPkgToBackup "flatpak-remote" "$remote" "$key"
-        elif [ "$action" = "rm-remote" ]; then
-          rmPkgFromBackup "flatpak-remote" "$remote" "$key"
+      elif ! [ "$repo" = "" ]; then
+        if [ "$action" = "add-repo" ]; then
+          /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "flatpak-repo" "$key" "yes" "$repo"
+        elif [ "$action" = "rm-repo" ]; then
+          /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "flatpak-repo" "$key" "no" "$repo"
         fi
-        remote=""
+        repo=""
         continue
       elif [ "$action" = "add" ]; then
-        addPkgToBackup "flatpak" "$key"
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "flatpak" "$key" "yes" "$repo"
         continue
       elif [ "$action" = "rm" ]; then
-        rmPkgFromBackup "flatpak" "$key"
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "flatpak" "$key" "no" "$repo"
         continue
-      elif [ "$action" = "add-remote" ]; then
-        remote="$key"
+      elif [ "$action" = "add-repo" ]; then
+        repo="$key"
         continue
-      elif [ "$action" = "rm-remote" ]; then
-        remote="$key"
+      elif [ "$action" = "rm-repo" ]; then
+        repo="$key"
         continue
       elif [ "$key" = "install" ]; then
         action="add"
@@ -177,10 +161,10 @@ function sudo {
         action="rm"
         continue
       elif [ "$key" = "remote-add" ]; then
-        action="add-remote"
+        action="add-repo"
         continue
       elif [ "$key" = "remote-delete" ]; then
-        action="rm-remote"
+        action="rm-repo"
         continue
       else
         break
@@ -196,10 +180,10 @@ function sudo {
       elif [[ "$key" =~ "-".* ]]; then
         continue
       elif [ "$action" = "add" ]; then
-        addPkgToBackup "snap" "$key"
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "snap" "$key" "yes"
         continue
       elif [ "$action" = "rm" ]; then
-        rmPkgFromBackup "snap" "$key"
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "snap" "$key" "no"
         continue
       elif [ "$key" = "install" ]; then
         action="add"
@@ -217,6 +201,7 @@ function sudo {
 }
 
 
+# optional useful functions
 function update {
   sudo dnf -y update
   sudo bash /etc/empoleos/update.sh

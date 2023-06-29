@@ -1,0 +1,8 @@
+[Unit]
+Description=AspieSoft ClamAV Download Scanner
+
+[Service]
+ExecStart=/bin/bash /etc/aspiesoft-clamav-scanner/start.sh
+
+[Install]
+WantedBy=multi-user.target
