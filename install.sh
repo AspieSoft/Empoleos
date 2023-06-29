@@ -28,9 +28,10 @@ tmpDir="$(mktemp -d)"
 
 
 function loadConfigFile {
-  #todo: handle https requests
   if ! [ "$configFile" = "" ] && ! [ "$hasConf" = "1" ]; then
-    if test -f "$configFile"; then
+    if [[ "$configFile" =~ "https://".* ]]; then
+      #todo: handle https requests (download config.yml file and parse it)
+    elif test -f "$configFile"; then
       hasConf="1"
       eval $(parse_yaml "$configFile" "empoleosCONF_")
     else
@@ -383,8 +384,8 @@ if [[ "$PWD" =~ empoleos/?$ ]]; then
   rm -rf "$PWD"
 fi
 
-sudo dnf -y update
 sudo dnf -y clean all
+sudo dnf -y update
 
 echo "Install Finished!"
 
