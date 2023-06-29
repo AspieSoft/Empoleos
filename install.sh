@@ -118,6 +118,21 @@ function askForConfigFile {
 }
 
 
+function helpInfo {
+  echo
+  echo '-h, --help, -?: this list'
+  echo
+  echo '-y: autoyes'
+  echo
+  echo '--config: "path/to/congig.yml" || "https://example.com/config.yml"'
+  echo
+  echo '--server: enable install for servers'
+  echo
+  echo '--boring: disable fun theme modifications for desktop install (does not apply to server install)'
+  echo
+}
+
+
 autoUpdates="y"
 
 serverMode="n"
@@ -126,6 +141,9 @@ boringMode="n"
 for opt in "$@"; do
   if [ "$opt" = "-y" ]; then
     autoYes="1"
+  elif [ "$opt" = "-h" -o "$opt" = "--help" -o "$opt" = "-?" ]; then
+    helpInfo
+    exit
   elif [ "$opt" = "--server" ]; then
     serverMode="y"
   elif [ "$opt" = "--boring" ]; then
@@ -196,18 +214,20 @@ echo
 
 
 function cleanup {
-  # reset login timeout
-  sudo sed -r -i 's/^Defaults([\t ]+)(.*)env_reset(.*), (timestamp_timeout=1801,?\s*)+$/Defaults\1\2env_reset\3/m' /etc/sudoers &>/dev/null
+  if ! [ "$serverMode" = "y" ]; then
+    # reset login timeout
+    sudo sed -r -i 's/^Defaults([\t ]+)(.*)env_reset(.*), (timestamp_timeout=1801,?\s*)+$/Defaults\1\2env_reset\3/m' /etc/sudoers &>/dev/null
 
-  # enable sleep
-  sudo systemctl --runtime unmask sleep.target suspend.target hibernate.target hybrid-sleep.target &>/dev/null
-  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'suspend' &>/dev/null
+    # enable sleep
+    sudo systemctl --runtime unmask sleep.target suspend.target hibernate.target hybrid-sleep.target &>/dev/null
+    gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'suspend' &>/dev/null
 
-  # enable auto updates
-  gsettings set org.gnome.software download-updates true
+    # enable auto updates
+    gsettings set org.gnome.software download-updates true
 
-  # enable auto suspend
-  sudo perl -0777 -i -pe 's/#AspieSoft-TEMP-START(.*)#AspieSoft-TEMP-END//s' /etc/systemd/logind.conf &>/dev/null
+    # enable auto suspend
+    sudo perl -0777 -i -pe 's/#AspieSoft-TEMP-START(.*)#AspieSoft-TEMP-END//s' /etc/systemd/logind.conf &>/dev/null
+  fi
 
   cd "$dir"
 }
@@ -224,27 +244,30 @@ trap cleanupexit SIGINT
 sudo echo
 
 
-# extend login timeout
-sudo sed -r -i 's/^Defaults([\t ]+)(.*)env_reset(.*)$/Defaults\1\2env_reset\3, timestamp_timeout=1801/m' /etc/sudoers &>/dev/null
+if ! [ "$serverMode" = "y" ]; then
+  # extend login timeout
+  sudo sed -r -i 's/^Defaults([\t ]+)(.*)env_reset(.*)$/Defaults\1\2env_reset\3, timestamp_timeout=1801/m' /etc/sudoers &>/dev/null
 
-# disable sleep
-sudo systemctl --runtime mask sleep.target suspend.target hibernate.target hybrid-sleep.target &>/dev/null
-gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing' &>/dev/null
+  # disable sleep
+  sudo systemctl --runtime mask sleep.target suspend.target hibernate.target hybrid-sleep.target &>/dev/null
+  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing' &>/dev/null
 
-# disable auto updates
-gsettings set org.gnome.software download-updates false
+  # disable auto updates
+  gsettings set org.gnome.software download-updates false
 
-# disable auto suspend
-echo "#AspieSoft-TEMP-START" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
-echo "HandleLidSwitch=ignore" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
-echo "HandleLidSwitchDocked=ignore" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
-echo "IdleAction=ignore" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
-echo "#AspieSoft-TEMP-END" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
+  # disable auto suspend
+  echo "#AspieSoft-TEMP-START" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
+  echo "HandleLidSwitch=ignore" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
+  echo "HandleLidSwitchDocked=ignore" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
+  echo "IdleAction=ignore" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
+  echo "#AspieSoft-TEMP-END" | sudo tee -a /etc/systemd/logind.conf &>/dev/null
+
+  # set theme basics
+  gsettings set org.gnome.desktop.interface clock-format 12h
+  gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
+fi
 
 
-# set theme basics
-gsettings set org.gnome.desktop.interface clock-format 12h
-gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
 
 
 # verify script checksums
