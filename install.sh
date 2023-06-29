@@ -6,14 +6,14 @@ dir="$PWD"
 
 # verify checksums
 gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/install.sh" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
-sum=$(sha256sum "install.sh" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+sum=$(cat "install.sh" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
 if ! [ "$sum" = "$gitSum" ]; then
   echo "error: checksum failed!"
   exit
 fi
 
 gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/bin/common.sh" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
-sum=$(sha256sum "bin/common.sh" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+sum=$(cat "bin/common.sh" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
 if ! [ "$sum" = "$gitSum" ]; then
   echo "error: checksum failed!"
   exit

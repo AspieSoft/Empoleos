@@ -139,7 +139,7 @@ function parse_yaml {
 
 function gitVerify {
   gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/$1" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
-  sum=$(sha256sum "$1" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+  sum=$(cat "$1" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
   if ! [ "$sum" = "$gitSum" ]; then
     echo "error: checksum failed!"
     exit

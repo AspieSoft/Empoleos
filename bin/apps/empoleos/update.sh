@@ -50,7 +50,7 @@ cd Empoleos
 
 for file in bin/scripts/*.sh; do
   gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/$file" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
-  sum=$(sha256sum "$file" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+  sum=$(cat "$file" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
   if ! [ "$sum" = "$gitSum" ]; then
     echo "error: checksum failed!"
     exit
@@ -81,7 +81,7 @@ for file in "${fileList[@]}"; do
     verN=(${ver//./ })
     if [ "${verN[0]}" -le "${fileVer[0]}" ] && [ "${verN[1]}" -le "${fileVer[1]}" ] && [ "${verN[2]}" -le "${fileVer[2]}" ]; then
       gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/$localUpdateDir/$file" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
-      sum=$(sha256sum "$localUpdateDir/$file" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+      sum=$(cat "$localUpdateDir/$file" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
       if [ "$sum" = "$gitSum" ]; then
         echo "updating $ver -> ${fileVer[0]}.${fileVer[1]}.${fileVer[2]}"
         sudo bash "./$localUpdateDir/$file"
