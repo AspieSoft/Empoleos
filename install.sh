@@ -4,7 +4,7 @@ cd $(dirname "$0")
 dir="$PWD"
 
 
-verify checksums
+# verify checksums
 gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/install.sh" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
 sum=$(sha256sum "install.sh" | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
 if ! [ "$sum" = "$gitSum" ]; then
