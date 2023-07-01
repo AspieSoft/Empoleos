@@ -1,0 +1,22 @@
+chromium:
+  ubuntu: chromium-browser
+p7zip-plugins:
+  debian_ubuntu: no
+power-profiles-daemon:
+  debian_ubuntu: no
+clamd:
+  debian_ubuntu: clamav-daemon
+clamav-update:
+  debian_ubuntu: no
+cronie:
+  debian_ubuntu: no
+java-1.8.0-openjdk.x86_64:
+  debian_ubuntu: openjdk-8-jre openjdk-8-jdk
+java-11-openjdk.x86_64:
+  debian_ubuntu: openjdk-11-jre openjdk-11-jdk
+java-latest-openjdk.x86_64:
+  debian_ubuntu: openjdk-17-jre openjdk-17-jdk
+gcc-c++:
+  debian_ubuntu: g++
+pcre-devel:
+  debian_ubuntu: libpcre3-dev

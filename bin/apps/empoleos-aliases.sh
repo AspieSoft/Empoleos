@@ -1,29 +1,122 @@
 #!/bin/bash
 
+# get distro base
+if [ "$(cat /proc/version | grep 'Red Hat')" ] && [ "$(sudo which dnf 2>/dev/null)" != "" -o "$(sudo which yum 2>/dev/null)" != "" -o "$(sudo which rpm-ostree 2>/dev/null)" != "" -o "$(sudo which rpm 2>/dev/null)" != "" ]; then
+  DISTRO_BASE="fedora"
+elif [ "$(cat /proc/version | grep 'Debian')" ] && [ "$(sudo which apt 2>/dev/null)" != "" -o "$(sudo which apt-get 2>/dev/null)" != "" -o "$(sudo which nala 2>/dev/null)" != "" -o "$(sudo which dpkg 2>/dev/null)" != "" ]; then
+  DISTRO_BASE="debian"
+elif [ "$(cat /proc/version | grep 'Ubuntu')" ] && [ "$(sudo which apt 2>/dev/null)" != "" -o "$(sudo which apt-get 2>/dev/null)" != "" -o "$(sudo which nala 2>/dev/null)" != "" -o "$(sudo which dpkg 2>/dev/null)" != "" ]; then
+  DISTRO_BASE="ubuntu"
+fi
+
+
 # handle backup config edits
 function dnf {
-  local action=""
-  for key in $@; do
-    if [[ "$key" =~ "-".* ]]; then
-      continue
-    elif [ "$action" = "add" ]; then
-      /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "dnf" "$key" "yes"
-      continue
-    elif [ "$action" = "rm" ]; then
-      /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "dnf" "$key" "no"
-      continue
-    elif [ "$key" = "install" -o "$key" = "reinstall" ]; then
-      action="add"
-      continue
-    elif [ "$key" = "remove" -o "$key" = "autoremove" ]; then
-      action="rm"
-      continue
-    else
-      break
-    fi
-  done
+  if [ "$DISTRO_BASE" = "fedora" ]; then
+    local action=""
+    for key in $@; do
+      if [[ "$key" =~ "-".* ]]; then
+        continue
+      elif [ "$action" = "add" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "dnf" "$key" "yes"
+        continue
+      elif [ "$action" = "rm" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "dnf" "$key" "no"
+        continue
+      elif [ "$key" = "install" -o "$key" = "reinstall" ]; then
+        action="add"
+        continue
+      elif [ "$key" = "remove" -o "$key" = "autoremove" ]; then
+        action="rm"
+        continue
+      else
+        break
+      fi
+    done
+  fi
 
   command dnf "$@"
+}
+
+function apt {
+  if [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+    local action=""
+    for key in $@; do
+      if [[ "$key" =~ "-".* ]]; then
+        continue
+      elif [ "$action" = "add" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "apt" "$key" "yes"
+        continue
+      elif [ "$action" = "rm" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "apt" "$key" "no"
+        continue
+      elif [ "$key" = "install" -o "$key" = "reinstall" ]; then
+        action="add"
+        continue
+      elif [ "$key" = "remove" -o "$key" = "autoremove" ]; then
+        action="rm"
+        continue
+      else
+        break
+      fi
+    done
+  fi
+
+  command nala "$@"
+}
+
+function apt-get {
+  if [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+    local action=""
+    for key in $@; do
+      if [[ "$key" =~ "-".* ]]; then
+        continue
+      elif [ "$action" = "add" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "apt" "$key" "yes"
+        continue
+      elif [ "$action" = "rm" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "apt" "$key" "no"
+        continue
+      elif [ "$key" = "install" -o "$key" = "reinstall" ]; then
+        action="add"
+        continue
+      elif [ "$key" = "remove" -o "$key" = "autoremove" ]; then
+        action="rm"
+        continue
+      else
+        break
+      fi
+    done
+  fi
+
+  command apt-get "$@"
+}
+
+function nala {
+  if [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+    local action=""
+    for key in $@; do
+      if [[ "$key" =~ "-".* ]]; then
+        continue
+      elif [ "$action" = "add" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "apt" "$key" "yes"
+        continue
+      elif [ "$action" = "rm" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "apt" "$key" "no"
+        continue
+      elif [ "$key" = "install" -o "$key" = "reinstall" ]; then
+        action="add"
+        continue
+      elif [ "$key" = "remove" -o "$key" = "autoremove" ]; then
+        action="rm"
+        continue
+      else
+        break
+      fi
+    done
+  fi
+
+  command nala "$@"
 }
 
 function flatpak {
@@ -99,7 +192,7 @@ function snap {
 }
 
 function sudo {
-  if [ "$1" = "dnf" ]; then
+  if [ "$1" = "dnf" ] && [ "$DISTRO_BASE" = "fedora" ]; then
     local firstIndex="true"
     local action=""
     for key in $@; do
@@ -113,6 +206,31 @@ function sudo {
         continue
       elif [ "$action" = "rm" ]; then
         /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "dnf" "$key" "no"
+        continue
+      elif [ "$key" = "install" -o "$key" = "reinstall" ]; then
+        action="add"
+        continue
+      elif [ "$key" = "remove" -o "$key" = "autoremove" ]; then
+        action="rm"
+        continue
+      else
+        break
+      fi
+    done
+  elif [ "$1" = "apt" -o "$1" = "apt-get" -o "$1" = "nala" ] && [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+    local firstIndex="true"
+    local action=""
+    for key in $@; do
+      if [ "$firstIndex" = "true" ]; then
+        firstIndex="false"
+        continue
+      elif [[ "$key" =~ "-".* ]]; then
+        continue
+      elif [ "$action" = "add" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "apt" "$key" "yes"
+        continue
+      elif [ "$action" = "rm" ]; then
+        /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "apt" "$key" "no"
         continue
       elif [ "$key" = "install" -o "$key" = "reinstall" ]; then
         action="add"
@@ -203,15 +321,24 @@ function sudo {
 
 # optional useful functions
 function update {
-  sudo dnf -y update
+  if [ "$DISTRO_BASE" = "fedora" ]; then
+    sudo dnf -y update
+  elif [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+    sudo apt -y update
+    sudo apt -y upgrade
+  fi
+
   sudo bash /etc/empoleos/update.sh
-  sudo dnf clean all
+
+  if [ "$DISTRO_BASE" = "fedora" ]; then
+    sudo dnf clean all
+  elif [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+    sudo apt -y autoremove
+  fi
 }
 
 function backup {
-  sudo dnf -y update
-  sudo bash /etc/empoleos/update.sh
-  sudo dnf clean all
+  update
 
   sudo bash /etc/empoleos/backup.sh
 }

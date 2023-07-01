@@ -1,13 +1,16 @@
 #!/bin/bash
 
 # install file systems
-sudo dnf -y install btrfs-progs lvm2 xfsprogs udftools
+addDnfPkg btrfs-progs lvm2 xfsprogs udftools
 
 # install 7zip
-sudo dnf -y install p7zip p7zip-plugins
+addDnfPkg p7zip p7zip-plugins
 
 # install printer software
-sudo dnf -y install hplip hplip-gui
+addDnfPkg hplip hplip-gui
+
+# install inotify-tools
+addDnfPkg inotify-tools
 
 # hide core files
 if ! [ -f "$HOME/.hidden" ]; then

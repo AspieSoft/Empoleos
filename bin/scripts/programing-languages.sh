@@ -1,15 +1,17 @@
 #!/bin/bash
 
 # install python, c++, and java
-sudo dnf -y install python python3 python-pip
-sudo dnf -y install gcc-c++ make gcc
-sudo dnf -y install java-1.8.0-openjdk.x86_64
-sudo dnf -y install java-11-openjdk.x86_64
-sudo dnf -y install java-latest-openjdk.x86_64
+addDnfPkg python python3 python-pip python3-pip
+addDnfPkg gcc-c++ make gcc #edit for apt
+addDnfPkg java-1.8.0-openjdk.x86_64
+addDnfPkg java-11-openjdk.x86_64
+addDnfPkg java-latest-openjdk.x86_64
 
 # install nodejs
-echo " - installing nodejs..."
-sudo dnf -y install nodejs
+addDnfPkg nodejs
+if [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+  sudo apt -y install npm
+fi
 sudo npm -g i npm
 npm config set prefix ~/.npm
 
@@ -47,13 +49,12 @@ fi
 
 # install yarn and git
 sudo npm -g i yarn
-sudo dnf -y install git
+addDnfPkg git
 
 # install golang
-echo " - installing golang..."
-sudo dnf -y install golang
+addDnfPkg golang
 sudo ln -s /lib/golang /usr/share/go
-sudo dnf install pcre-devel
+addDnfPkg pcre-devel
 if ! grep -q "go" "$HOME/.hidden" ; then
   echo "go" | sudo tee -a "$HOME/.hidden"
 fi
@@ -62,8 +63,16 @@ if ! grep -q "go" "/etc/skel/.hidden" ; then
 fi
 
 # install docker
-sudo dnf -y install dnf-plugins-core
-sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+if [ "$DISTRO_BASE" = "fedora" ]; then
+  sudo dnf -y install dnf-plugins-core
+  sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+  sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+elif [ "$DISTRO_BASE" = "debian" ]; then
+  #todo: auto install docker on debian
+  echo "docker not yet auto installed for debian"
+elif [ "$DISTRO_BASE" = "ubuntu" ]; then
+  #todo: auto install docker on ubuntu
+  echo "docker not yet auto installed for ubuntu"
+fi
 sudo systemctl enable docker
 sudo systemctl start docker

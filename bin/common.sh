@@ -1,5 +1,90 @@
 #!/bin/bash
 
+function findDnfPkg {
+  local key=""
+  local pkg=""
+  local pkgList=""
+
+  for pkg in $@; do
+    key="distroPkgMap_${1}_${DISTRO_BASE}"
+    pkg="${!key}"
+
+    if [ "$pkg" = "" ] && [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+      key="distroPkgMap_${1}_debian_ubuntu"
+      pkg="${!key}"
+    fi
+
+    if [ "$pkg" = "" ]; then
+      pkg="$1"
+    elif [ "$pkg" = "no" -o "$pkg" = "false" ]; then
+      pkg=""
+    fi
+
+    pkg=$(echo "$pkg" | sed -e 's/__l__/-/g' -e 's/__d__/\./g')
+
+    if [ "$pkgList" = "" ]; then
+      pkgList="$pkg"
+    else
+      pkgList="$pkgList $pkg"
+    fi
+  done
+
+  echo "$pkgList"
+}
+
+
+function addDnfPkg {
+  local pkgList="$(findDnfPkg $@)"
+
+  if [ "$DISTRO_BASE" = "fedora" ]; then
+    sudo dnf -y install $pkgList
+  elif [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+    sudo apt -y install $pkgList
+  fi
+}
+
+function rmDnfPkg {
+  local pkgList="$(findDnfPkg $@)"
+
+  if [ "$DISTRO_BASE" = "fedora" ]; then
+    sudo dnf -y remove $pkgList
+  elif [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+    sudo apt -y remove $pkgList
+  fi
+}
+
+
+function dnfClean {
+  if [ "$DISTRO_BASE" = "fedora" ]; then
+    sudo dnf -y clean all
+  elif [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+    sudo apt -y autoremove
+  fi
+}
+
+function dnfUpdate {
+  if [ "$DISTRO_BASE" = "fedora" ]; then
+    sudo dnf -y update
+  elif [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+    sudo apt -y update
+    if [ "$1" == "upgrade" ]; then
+      sudo apt -y upgrade
+    fi
+  fi
+}
+
+
+function hasDnfPkg {
+  local pkgList="$(findDnfPkg $1)"
+
+  if [ "$(sudo which "$pkgList" 2>/dev/null)" != "" ]; then
+    echo 1
+  else
+    echo 0
+  fi
+}
+
+
 function hasPkg {
   if [ "$(sudo which "$1" 2>/dev/null)" != "" ]; then
     echo 1
@@ -9,6 +94,12 @@ function hasPkg {
 }
 
 function addPkg {
+  local pkgMan=""
+  local pkgType=""
+  local pkgList=""
+  local pkgCheck=""
+  local pkgConf=""
+
   if [ "$1" = "flatpak" -o "$1" = "flatpack" ]; then
     pkgMan="flatpak"
     pkgType="$2"
@@ -20,7 +111,7 @@ function addPkg {
   fi
 
   for pkg in $pkgCheck; do
-    if [ "$(hasPackage $pkg)" = "0" ]; then
+    if [ "$(hasPkg $pkg)" = "0" -a "$(hasDnfPkg $pkg)" = "0" ]; then
       pkgConf="$(getPkgConfig $pkgMan $pkg $pkgType)"
 
       # add package to list
@@ -36,7 +127,8 @@ function addPkg {
 
   if [ "$pkgList" != "" ] || [ "$pkgMan" = "flatpak" -a "${pkgList/$pkgType /}" ]; then
     if [ "$1" = "dnf" ]; then
-      sudo dnf -y install $pkgList
+      # sudo dnf -y install $pkgList
+      addDnfPkg $pkgList
     elif [ "$1" = "flatpak" -o "$1" = "flatpack" ]; then
       sudo flatpak install -y $pkgList
     elif [ "$1" = "snap" ]; then
@@ -50,6 +142,12 @@ function addPkg {
 }
 
 function rmPkg {
+  local pkgMan=""
+  local pkgType=""
+  local pkgList=""
+  local pkgCheck=""
+  local pkgConf=""
+
   if [ "$1" = "flatpak" -o "$1" = "flatpack" ]; then
     pkgMan="flatpak"
     pkgType="$2"
@@ -60,7 +158,7 @@ function rmPkg {
   fi
 
   for pkg in $pkgCheck; do
-    if [ "$(hasPackage $pkg)" = "1" ]; then
+    if [ "$(hasPkg $pkg)" = "1" -a "$(hasDnfPkg $pkg)" = "0" ]; then
       pkgConf="$(getPkgConfig $pkgMan $pkg $pkgType)"
 
       # add package to list
@@ -76,7 +174,8 @@ function rmPkg {
 
   if [ "$pkgList" != "" ] || [ "$pkgMan" = "flatpak" -a "${pkgList/$pkgType /}" ]; then
     if [ "$1" = "dnf" ]; then
-      sudo dnf -y remove $pkgList
+      # sudo dnf -y remove $pkgList
+      rmDnfPkg $pkgList
     elif [ "$1" = "flatpak" -o "$1" = "flatpack" ]; then
       sudo flatpak uninstall -y $pkgList
     elif [ "$1" = "snap" ]; then
@@ -92,6 +191,9 @@ function rmPkg {
 # inputs: $pkgMan, $pkg, $pkgType (flatpak)
 # outputs: 0 = remove, 1 = add, 2 = default (not specified)
 function getPkgConfig {
+  local confVarPkg=""
+  local confVar=""
+
   if [ "$hasConf" = "1" ]; then
     confVarPkg=$(echo "$2" | sed -e 's/-/__l__/g' -e 's/\./__d__/g')
     if [ "$1" = "flatpak" ]; then
@@ -138,8 +240,8 @@ function parse_yaml {
 
 
 function gitVerify {
-  gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/$1" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
-  sum=$(cat "$1" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+  local gitSum=$(curl --silent "https://raw.githubusercontent.com/AspieSoft/Empoleos/master/$1" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
+  local sum=$(cat "$1" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/')
   if ! [ "$sum" = "$gitSum" ]; then
     echo "error: checksum failed!"
     exit

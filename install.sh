@@ -23,6 +23,20 @@ fi
 # add bash dependencies
 source ./bin/common.sh
 
+# get distro base
+if [ "$(cat /proc/version | grep 'Red Hat')" ] && [ "$(sudo which dnf 2>/dev/null)" != "" -o "$(sudo which yum 2>/dev/null)" != "" -o "$(sudo which rpm-ostree 2>/dev/null)" != "" -o "$(sudo which rpm 2>/dev/null)" != "" ]; then
+  DISTRO_BASE="fedora"
+elif [ "$(cat /proc/version | grep 'Debian')" ] && [ "$(sudo which apt 2>/dev/null)" != "" -o "$(sudo which apt-get 2>/dev/null)" != "" -o "$(sudo which nala 2>/dev/null)" != "" -o "$(sudo which dpkg 2>/dev/null)" != "" ]; then
+  DISTRO_BASE="debian"
+elif [ "$(cat /proc/version | grep 'Ubuntu')" ] && [ "$(sudo which apt 2>/dev/null)" != "" -o "$(sudo which apt-get 2>/dev/null)" != "" -o "$(sudo which nala 2>/dev/null)" != "" -o "$(sudo which dpkg 2>/dev/null)" != "" ]; then
+  DISTRO_BASE="ubuntu"
+else
+  echo "error: your linux distro is not yet supported"
+  exit
+fi
+
+eval $(parse_yaml "./bin/distroPkgMap.yml" "distroPkgMap_")
+
 
 tmpDir="$(mktemp -d)"
 
@@ -277,7 +291,12 @@ done
 
 
 # run scripts
-bash ./bin/scripts/repos.sh
+if [ "$DISTRO_BASE" = "fedora" ]; then
+  bash ./bin/scripts/repos.sh
+elif [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+  bash ./bin/scripts/apt/repos.sh
+fi
+
 bash ./bin/scripts/fix.sh
 
 if [ "$serverMode" = "y" ]; then
@@ -311,7 +330,7 @@ fi
 if [ "$hasConf" = "1" ]; then
   pkgManUsed=""
   for pkgMan in $empoleosCONF_; do
-    if [[ "$pkgMan" =~ "flatpak_".* ]] || [ "$pkgMan" = "dnf" -o "$pkgMan" = "snap" ]; then
+    if [[ "$pkgMan" =~ "flatpak_".* ]] || [ "$pkgMan" = "dnf" -a "$DISTRO_BASE" = "fedora" ] || [ "$pkgMan" = "apt" -a "$DISTRO_BASE" = "ubuntu" ] || [ "$pkgMan" = "apt" -a "$DISTRO_BASE" = "debian" ] || [ "$pkgMan" = "snap" ]; then
       hasUsedPkgMan=0
       for used in $pkgManUsed; do
         if [ "$pkgMan" = "$used" ]; then
@@ -426,8 +445,8 @@ if [[ "$PWD" =~ empoleos/?$ ]]; then
   rm -rf "$PWD"
 fi
 
-sudo dnf -y clean all
-sudo dnf -y update
+dnfClean
+dnfUpdate "upgrade"
 
 echo "Install Finished!"
 
