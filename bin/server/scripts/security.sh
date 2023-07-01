@@ -1,10 +1,12 @@
 #!/bin/bash
 
 # install ufw and disable firewalld
-echo "installing ufw..."
-sudo dnf -y install ufw
-sudo systemctl stop firewalld
-sudo systemctl disable firewalld
+if [ "$DISTRO_BASE" = "fedora" ]; then
+  echo "installing ufw..."
+  sudo dnf -y install ufw
+  sudo systemctl stop firewalld
+  sudo systemctl disable firewalld
+fi
 sudo systemctl enable ufw
 sudo systemctl start ufw
 sudo ufw delete allow SSH
@@ -14,13 +16,14 @@ sudo ufw delete allow to ff02::fb app mDNS
 sudo ufw limit 22/tcp
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
+
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 
 sudo ufw enable
 
 # install fail2ban
-sudo dnf install fail2ban
+addDnfPkg fail2ban
 
 if ! [ -f "/etc/fail2ban/jail.local" ]; then
   sudo touch "/etc/fail2ban/jail.local"
@@ -39,13 +42,13 @@ sudo systemctl start fail2ban
 
 
 # install clamav
-sudo dnf -y install clamav clamd clamav-update
+addDnfPkg clamav clamd clamav-update
 sudo systemctl stop clamav-freshclam
 sudo freshclam
 sudo systemctl enable clamav-freshclam --now
-sudo dnf -y install clamtk
+addDnfPkg clamtk
 
-sudo dnf -y install cronie
+addDnfPkg cronie
 
 sudo freshclam
 
@@ -110,10 +113,21 @@ fi
 
 
 # install auto updates
-sudo dnf -y install dnf-automatic
-sudo sed -r -i 's/^apply_updates(\s*)=(\s*)(.*)$/apply_updates\1=\2yes/m' "/etc/dnf/automatic.conf"
-sudo systemctl enable --now dnf-automatic.timer
+if [ "$DISTRO_BASE" = "fedora" ]; then
+  sudo dnf -y install dnf-automatic
+  sudo sed -r -i 's/^apply_updates(\s*)=(\s*)(.*)$/apply_updates\1=\2yes/m' "/etc/dnf/automatic.conf"
+  sudo systemctl enable --now dnf-automatic.timer
+elif [ "$DISTRO_BASE" = "ubuntu" -o "$DISTRO_BASE" = "debian" ]; then
+  sudo apt -y install apparmor-utils
+  sudo aa-complain clamd
+fi
 
 
 # install pwgen
-sudo dnf -y install pwgen
+addDnfPkg pwgen
+
+
+# install rkhunter
+addDnfPkg rkhunter
+sudo rkhunter --update -q
+sudo rkhunter --propupd -q
