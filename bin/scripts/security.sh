@@ -13,9 +13,15 @@ sudo ufw delete allow SSH
 sudo ufw delete allow to 244.0.0.251 app mDNS
 sudo ufw delete allow to ff02::fb app mDNS
 
-sudo ufw limit 22/tcp
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
+if [ "$serverMode" = "y" ]; then
+  sudo ufw limit 22/tcp
+  sudo ufw allow 80/tcp
+  sudo ufw allow 443/tcp
+else
+  sudo ufw limit out 22/tcp
+  sudo ufw allow out 80/tcp
+  sudo ufw allow out 443/tcp
+fi
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 

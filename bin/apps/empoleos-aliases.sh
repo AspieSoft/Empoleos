@@ -2,11 +2,11 @@
 
 # get distro base
 if [ "$(cat /proc/version | grep 'Red Hat')" ] && [ "$(sudo which dnf 2>/dev/null)" != "" -o "$(sudo which yum 2>/dev/null)" != "" -o "$(sudo which rpm-ostree 2>/dev/null)" != "" -o "$(sudo which rpm 2>/dev/null)" != "" ]; then
-  DISTRO_BASE="fedora"
+  export DISTRO_BASE="fedora"
 elif [ "$(cat /proc/version | grep 'Debian')" ] && [ "$(sudo which apt 2>/dev/null)" != "" -o "$(sudo which apt-get 2>/dev/null)" != "" -o "$(sudo which nala 2>/dev/null)" != "" -o "$(sudo which dpkg 2>/dev/null)" != "" ]; then
-  DISTRO_BASE="debian"
+  export DISTRO_BASE="debian"
 elif [ "$(cat /proc/version | grep 'Ubuntu')" ] && [ "$(sudo which apt 2>/dev/null)" != "" -o "$(sudo which apt-get 2>/dev/null)" != "" -o "$(sudo which nala 2>/dev/null)" != "" -o "$(sudo which dpkg 2>/dev/null)" != "" ]; then
-  DISTRO_BASE="ubuntu"
+  export DISTRO_BASE="ubuntu"
 fi
 
 
