@@ -114,6 +114,7 @@ fi
 # install bleachbit
 addDnfPkg bleachbit
 
+
 # install auto updates
 if [ "$DISTRO_BASE" = "fedora" ]; then
   sudo dnf -y install dnf-automatic
@@ -127,3 +128,9 @@ fi
 
 # install pwgen
 addDnfPkg pwgen
+
+
+# install rkhunter
+addDnfPkg rkhunter
+sudo rkhunter --update -q
+sudo rkhunter --propupd -q
