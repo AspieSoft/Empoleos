@@ -60,7 +60,6 @@ function loadConfigFile {
 }
 
 
-#todo: add a user chosen password for backups
 function askForConfigFile {
   while true; do
     echo
