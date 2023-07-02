@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./bin/common.sh
+
 # update
 sudo apt -y update
 sudo apt -y upgrade

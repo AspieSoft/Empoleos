@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./bin/common.sh
+
 # install preload
 if [ "$DISTRO_BASE" = "fedora" ]; then
   sudo dnf -y copr enable elxreno/preload

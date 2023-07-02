@@ -37,12 +37,6 @@ fi
 
 eval $(parse_yaml "./bin/distroPkgMap.yml" "distroPkgMap_")
 
-echo "$DISTRO_BASE"
-
-bash ./bin/test.sh
-
-exit
-
 
 tmpDir="$(mktemp -d)"
 
@@ -66,6 +60,7 @@ function loadConfigFile {
 }
 
 
+#todo: add a user chosen password for backups
 function askForConfigFile {
   while true; do
     echo "Choose a config file you would like to use"
@@ -312,12 +307,7 @@ else
 fi
 
 bash ./bin/scripts/programing-languages.sh
-
-if [ "$serverMode" = "y" ]; then
-  bash ./bin/server/scripts/security.sh
-else
-  bash ./bin/scripts/security.sh
-fi
+bash ./bin/scripts/security.sh "$serverMode"
 
 if [ "$serverMode" = "y" ]; then
   bash ./bin/server/scripts/apps.sh

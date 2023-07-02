@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./bin/common.sh
+
 # install shortcuts
 if ! [ -f "$HOME/.bashrc" ]; then
   sudo touch "$HOME/.bashrc"

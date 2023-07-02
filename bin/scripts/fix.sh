@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./bin/common.sh
+
 # install file systems
 addDnfPkg btrfs-progs lvm2 xfsprogs udftools
 

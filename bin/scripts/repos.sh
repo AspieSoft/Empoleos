@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./bin/common.sh
+
 # install dnf if not installed
 if [ "$(sudo which dnf 2>/dev/null)" = "" ]; then
   sudo rpm-ostree update -y

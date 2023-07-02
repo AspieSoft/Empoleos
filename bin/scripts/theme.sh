@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./bin/common.sh
+
 boringMode="$1"
 
 source ./bin/common.sh

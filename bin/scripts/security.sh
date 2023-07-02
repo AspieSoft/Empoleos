@@ -1,5 +1,9 @@
 #!/bin/bash
 
+serverMode="$1"
+
+source ./bin/common.sh
+
 # install ufw and disable firewalld
 if [ "$DISTRO_BASE" = "fedora" ]; then
   echo "installing ufw..."
@@ -13,9 +17,15 @@ sudo ufw delete allow SSH
 sudo ufw delete allow to 244.0.0.251 app mDNS
 sudo ufw delete allow to ff02::fb app mDNS
 
-sudo ufw limit out 22/tcp
-sudo ufw allow out 80/tcp
-sudo ufw allow out 443/tcp
+if [ "$serverMode" = "y" ]; then
+  sudo ufw limit 22/tcp
+  sudo ufw allow 80/tcp
+  sudo ufw allow 443/tcp
+else
+  sudo ufw limit out 22/tcp
+  sudo ufw allow out 80/tcp
+  sudo ufw allow out 443/tcp
+fi
 
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
@@ -112,10 +122,6 @@ if ! [ -d "/etc/aspiesoft-clamav-scanner" ]; then
 fi
 
 
-# install bleachbit
-addDnfPkg bleachbit
-
-
 # install auto updates
 if [ "$DISTRO_BASE" = "fedora" ]; then
   sudo dnf -y install dnf-automatic
@@ -135,3 +141,10 @@ addDnfPkg pwgen
 addDnfPkg rkhunter
 sudo rkhunter --update -q
 sudo rkhunter --propupd -q
+
+
+# client packages
+if ! [ "$serverMode" = "y" ]; then
+  # install bleachbit
+  addDnfPkg bleachbit
+fi

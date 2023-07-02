@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./bin/common.sh
+
 # install python, c++, and java
 addDnfPkg python python3 python-pip python3-pip
 addDnfPkg gcc-c++ make gcc #edit for apt
