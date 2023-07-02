@@ -63,6 +63,7 @@ function loadConfigFile {
 #todo: add a user chosen password for backups
 function askForConfigFile {
   while true; do
+    echo
     echo "Choose a config file you would like to use"
     echo "or leave blank for default setup"
     echo "you may also enter your email for automatic cloud save backups (including your home directory)"
@@ -79,10 +80,12 @@ function askForConfigFile {
       continue
     fi
 
+    echo
+
     #todo: add support for other online account types
     if [[ "$configFile" =~ .*"@gmail.com" ]]; then
       if [ "$(gio info "google-drive://$configFile/My Drive")" = "" ]; then
-        echo "error: you must first sign into that account with gnome online accounts"
+        echo "error: you must first sign into that account with gnome online accounts, and open a google drive folder with the file manager"
         configFile=""
         continue
       fi
@@ -96,6 +99,24 @@ function askForConfigFile {
           configFile=""
           continue
         fi
+
+        while true; do
+          echo
+          read -s -p "New Passcode: " backupPWD
+          echo
+          read -s -p "Repeat Passcode: " backupRepeatPWD
+          echo
+          if [ "$backupPWD" = "" ]; then
+            echo "error: passcode cannot be blank"
+            continue
+          elif [ "$backupPWD" = "$backupRepeatPWD" ]; then
+            backupRepeatPWD=""
+            break
+          fi
+          echo "error: passcodes did not match"
+        done
+
+        backupPWD="$(echo "$backupPWD" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/' | sed -E "s/([a-zA-Z0-9]{10})[a-zA-Z0-9]{3}/\1/g")"
       else
         for file in $fileList; do
           echo "$(echo $file | sed -e 's#^google-drive://[^\\/]*/My[%20 ]*Drive/##i' -e 's#%20# #g')"
@@ -116,12 +137,52 @@ function askForConfigFile {
         listTest=""
         gio mkdir "$backupFiles"
         configFileNew=1
+
+        while true; do
+          echo
+          read -s -p "New Passcode: " backupPWD
+          echo
+          read -s -p "Repeat Passcode: " backupRepeatPWD
+          echo
+          if [ "$backupPWD" = "" ]; then
+            echo "error: passcode cannot be blank"
+            continue
+          elif [ "$backupPWD" = "$backupRepeatPWD" ]; then
+            backupRepeatPWD=""
+            break
+          fi
+          echo "error: passcodes did not match"
+        done
+
+        backupPWD="$(echo "$backupPWD" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/' | sed -E "s/([a-zA-Z0-9]{10})[a-zA-Z0-9]{3}/\1/g")"
         break
       fi
 
       listTest=""
       gio copy "$backupFiles/config.yml" "$tmpDir/config.yml"
       configFile="$tmpDir/config.yml"
+
+      gio copy "$backupFiles/pass.key" "$tmpDir/pass.key"
+
+      while true; do
+          echo
+          read -s -p "Enter Passcode: " backupPWD
+          echo
+          if [ "$backupPWD" = "" ]; then
+            echo "error: passcode cannot be blank"
+            continue
+          else
+            backupPWD="$(echo "$backupPWD" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/' | sed -E "s/([a-zA-Z0-9]{10})[a-zA-Z0-9]{3}/\1/g")"
+
+            # verify passcode (this only checks if the passcode might be correct, and does not affect security, since the passcode is verified in a more complex way later, before being used)
+            passKey="$(echo "$backupPWD" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/' | sed -E "s/([a-zA-Z0-9]{7})[a-zA-Z0-9]{5}/\1/g")"
+            if [ "$(cat "$tmpDir/pass.key")" = "" -o "$(cat "$tmpDir/pass.key")" = "$(echo "$backupPWD" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/' | sed -E "s/([a-zA-Z0-9]{7})[a-zA-Z0-9]{5}/\1/g")" ]; then
+              rm -f "$tmpDir/pass.key"
+              break
+            fi
+            echo "error: incorrect passcode"
+          fi
+        done
     elif [[ "$configFile" =~ .*"@".* ]]; then
       echo "error: that account type is not yet supported"
       configFile=""
@@ -243,6 +304,10 @@ function cleanup {
     # enable auto suspend
     sudo perl -0777 -i -pe 's/#AspieSoft-TEMP-START(.*)#AspieSoft-TEMP-END//s' /etc/systemd/logind.conf &>/dev/null
   fi
+
+  backupPWD=""
+  backupRepeatPWD=""
+  tmpPassWD=""
 
   cd "$dir"
 }
@@ -395,7 +460,7 @@ if ! [ "$backupFiles" = "" ]; then
     tmpPassWD="$(pwgen -scnyB -r "\\\"'\`\$!%" 512 1)"
 
     cd "$HOME"
-    bash "$dir/bin/copy-limit.sh" "." "$tmpDir/home.zip" "$tmpPassWD"
+    bash "$dir/bin/copy-limit.sh" "." "$tmpDir/home.zip" "$backupPWD-$tmpPassWD"
     cd "$dir"
 
     echo "$tmpPassWD" > "$tmpDir/enc.key"
@@ -404,6 +469,10 @@ if ! [ "$backupFiles" = "" ]; then
 
     gio copy "$tmpDir/home.zip" "$backupFiles/home.zip"
     tmpPassWD=""
+
+    echo "$(echo "$backupPWD" | sha256sum | sed -E 's/([a-zA-Z0-9]+).*$/\1/' | sed -E "s/([a-zA-Z0-9]{7})[a-zA-Z0-9]{5}/\1/g")" > "$tmpDir/pass.key"
+    gio copy "$tmpDir/pass.key" "$backupFiles/pass.key"
+    rm -f "$tmpDir/pass.key"
   else
     gio copy "$backupFiles/home.zip" "$tmpDir/home.zip"
 
@@ -411,11 +480,13 @@ if ! [ "$backupFiles" = "" ]; then
     tmpPassWD="$(cat $tmpDir/enc.key)"
     rm -f "$tmpDir/enc.key"
 
-    unzip -o -P "$tmpPassWD" "$tmpDir/home.zip" -d "$HOME"
+    unzip -o -P "$backupPWD-$tmpPassWD" "$tmpDir/home.zip" -d "$HOME"
   fi
 
   sudo sed -r -i 's/^#auto_backups=$/auto_backups=/m' "$dir/bin/apps/empoleos/init.sh"
   echo "$backupFiles" | sudo tee "$HOME/.empoleos-backup.url"
+  echo "$backupPWD" | sudo tee "$HOME/.empoleos-backup.key"
+  backupPWD=""
 fi
 
 if [ "$serverMode" = "y" ]; then

@@ -21,9 +21,15 @@ sleep 1
 
 echo "starting backup for empoleos"
 
-backupFiles="$(cat $HOME/.empoleos-backup.url)"
+backupFiles="$(cat "$HOME/.empoleos-backup.url")"
 if [ "$backupFiles" = "" ]; then
   echo "error: .empoleos-backup.url not found for user '$USER'"
+  exit
+fi
+
+backupPWD="$(cat "$HOME/.empoleos-backup.key")"
+if [ "$backupPWD" = "" ]; then
+  echo "error: .empoleos-backup.key not found for user '$USER'"
   exit
 fi
 
@@ -38,7 +44,7 @@ tmpDir="$(mktemp -d)"
 tmpPassWD="$(pwgen -scnyB -r "\\\"'\`\$!%" 512 1)"
 
 cd "$HOME"
-bash "$dir/bin/copy-limit.sh" "." "$tmpDir/home.zip" "$tmpPassWD"
+bash "$dir/bin/copy-limit.sh" "." "$tmpDir/home.zip" "$backupPWD-$tmpPassWD"
 cd "$dir"
 
 echo "$tmpPassWD" > "$tmpDir/enc.key"
@@ -47,6 +53,7 @@ rm -f "$tmpDir/enc.key"
 
 gio copy "$tmpDir/home.zip" "$backupFiles/home.zip"
 tmpPassWD=""
+backupPWD=""
 
 gio rename "$backupFiles/config.yml.back"
 gio remove "$backupFiles/enc.key.back"
