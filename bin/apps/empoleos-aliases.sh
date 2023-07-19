@@ -174,7 +174,7 @@ function snap {
       /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "snap" "$key" "yes"
       continue
     elif [ "$action" = "rm" ]; then
-      
+
       /etc/empoleos/edit-config/edit-config "/etc/empoleos/config.yml" "snap" "$key" "no"
       continue
     elif [ "$key" = "install" ]; then
@@ -315,7 +315,12 @@ function sudo {
     done
   fi
 
-  command sudo "$@"
+  if [ "$1" == "apt" ]; then
+    shift
+    command sudo nala "$@"
+  else
+    command sudo "$@"
+  fi
 }
 
 
