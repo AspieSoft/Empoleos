@@ -23,8 +23,9 @@ if [ "$(addPkg dnf nemo)" = "1" ]; then
   sudo sed -r -i 's/^\[Desktop Action new-window\]/OnlyShowIn=X-Cinnamon;Budgie;\n\n[Desktop Action new-window]/m' "/usr/share/applications/org.gnome.Nautilus.desktop"
 
   # prevent updates from changing these files
-  sudo chattr +i "/usr/share/applications/nemo.desktop"
-  sudo chattr +i "/usr/share/applications/org.gnome.Nautilus.desktop"
+  git clone https://github.com/AspieSoft/linux-nemo-fix.git && ./linux-nemo-fix/install.sh
+  # sudo chattr +i "/usr/share/applications/nemo.desktop"
+  # sudo chattr +i "/usr/share/applications/org.gnome.Nautilus.desktop"
 fi
 
 # install wine
